@@ -32,10 +32,18 @@ import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.customtabs.CustomTabsService;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.microsoft.identity.common.exception.ClientException;
 import com.microsoft.identity.common.exception.ErrorStrings;
+import com.microsoft.identity.common.internal.authorities.Authority;
+import com.microsoft.identity.common.internal.authorities.AuthorityDeserializer;
+import com.microsoft.identity.common.internal.authorities.AzureActiveDirectoryAudience;
+import com.microsoft.identity.common.internal.authorities.AzureActiveDirectoryAudienceDeserializer;
 import com.microsoft.identity.common.internal.logging.Logger;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -55,6 +63,7 @@ public class BrowserSelector {
      * @return Browser selected to use.
      */
     public static Browser select(final Context context) throws ClientException {
+        //TODO 1. Load browser metadata 2. compare the default browser
         final List<Browser> allBrowsers = getAllBrowsers(context);
         if (!allBrowsers.isEmpty()) {
             Logger.verbose(TAG, "Select the browser to launch.");
@@ -64,6 +73,24 @@ public class BrowserSelector {
             Logger.error(TAG, "No available browser installed on the device.", null);
             throw new ClientException(ErrorStrings.NO_AVAILABLE_BROWSER_FOUND, "No available browser installed on the device.");
         }
+    }
+
+    static List<BrowserPair> loadBrowserMetadata(final Context context, final int browserMetadataId) {
+        InputStream browserMetadataStream = context.getResources().openRawResource(browserMetadataId);
+        byte[] buffer;
+        List<BrowserPair> browserPairList = new ArrayList<>();
+
+        try {
+            buffer = new byte[browserMetadataStream.available()];
+            browserMetadataStream.read(buffer);
+            final String browserMetadata = new String(buffer);
+            BrowserPair browserPair = new Gson().fromJson(browserMetadata, BrowserPair.class);
+            browserPairList.add(browserPair);
+        } catch (final IOException exception) {
+            //TODO
+        }
+
+        return browserPairList;
     }
 
     /**
