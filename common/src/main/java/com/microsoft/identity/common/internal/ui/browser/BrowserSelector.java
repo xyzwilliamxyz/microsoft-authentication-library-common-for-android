@@ -34,6 +34,8 @@ import android.support.customtabs.CustomTabsService;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import com.microsoft.identity.common.R;
 import com.microsoft.identity.common.exception.ClientException;
 import com.microsoft.identity.common.exception.ErrorStrings;
 import com.microsoft.identity.common.internal.authorities.Authority;
@@ -44,7 +46,9 @@ import com.microsoft.identity.common.internal.logging.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -63,9 +67,23 @@ public class BrowserSelector {
      * @return Browser selected to use.
      */
     public static Browser select(final Context context) throws ClientException {
-        //TODO 1. Load browser metadata 2. compare the default browser
+        /* 1. Load browser metadata
+           2. compare the default browser */
+        final List<BrowserPair> browserPairs = loadBrowserMetadata(context, R.raw.browser_metadata);
+
         final List<Browser> allBrowsers = getAllBrowsers(context);
-        if (!allBrowsers.isEmpty()) {
+
+        final List<Browser> filteredBrowsers = new ArrayList<>();
+
+        for (Browser browser : allBrowsers) {
+            for (BrowserPair browserPair : browserPairs) {
+                if (browserPair.matches(browser)) {
+                    filteredBrowsers.add(browser);
+                }
+            }
+        }
+
+        if (!filteredBrowsers.isEmpty()) {
             Logger.verbose(TAG, "Select the browser to launch.");
             Logger.verbosePII(TAG, "Browser's package name: " + allBrowsers.get(0).getPackageName() + " version: " + allBrowsers.get(0).getVersion());
             return allBrowsers.get(0);
@@ -75,22 +93,28 @@ public class BrowserSelector {
         }
     }
 
+    /**
+     * Load the browser metadata json file.
+     * @param context Context
+     * @param browserMetadataId int
+     * @return list of browser pairs.
+     */
     static List<BrowserPair> loadBrowserMetadata(final Context context, final int browserMetadataId) {
         InputStream browserMetadataStream = context.getResources().openRawResource(browserMetadataId);
         byte[] buffer;
-        List<BrowserPair> browserPairList = new ArrayList<>();
+        List<BrowserPair> browserPairs = new ArrayList<>();
 
         try {
             buffer = new byte[browserMetadataStream.available()];
             browserMetadataStream.read(buffer);
             final String browserMetadata = new String(buffer);
-            BrowserPair browserPair = new Gson().fromJson(browserMetadata, BrowserPair.class);
-            browserPairList.add(browserPair);
+            Type collectionType = new TypeToken<List<BrowserPair>>(){}.getType();
+            browserPairs = new Gson().fromJson(browserMetadata,collectionType);
         } catch (final IOException exception) {
             //TODO
         }
 
-        return browserPairList;
+        return browserPairs;
     }
 
     /**
