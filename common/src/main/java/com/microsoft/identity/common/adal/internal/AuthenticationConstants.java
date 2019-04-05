@@ -655,6 +655,11 @@ public final class AuthenticationConstants {
         public static final String ACCOUNT_CLIENTID_KEY = "account.clientid.key";
 
         /**
+         * String of account environment key.
+         */
+        public static final String ACCOUNT_ENVIRONMENT_KEY = "account.environment.key";
+
+        /**
          * String of account client secret key.
          */
         public static final String ACCOUNT_CLIENT_SECRET_KEY = "account.client.secret.key";
@@ -1038,6 +1043,16 @@ public final class AuthenticationConstants {
          * String for the package name of the client app.
          */
         public static final String CLIENT_APP_PACKAGE_NAME = "client_app_package_name";
+
+        /**
+         * String for the indicator whether able to connect the auth service.
+         */
+        public static final String AUTH_SERVICE_CONNECT = "auth_service_connect";
+
+        /**
+         * String to return account list from broker.
+         */
+        public static final String BROKER_RESULT_ACCOUNTS = "broker.result.accounts";
 
         /**
          * Bundle identifiers for x-ms-clitelem info.

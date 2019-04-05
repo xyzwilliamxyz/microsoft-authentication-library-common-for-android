@@ -46,9 +46,9 @@ public final class Logger {
     private final Object mLock = new Object();
 
     // Disable to log PII by default.
-    private static boolean sAllowPii = false;
+    private static boolean sAllowPii = true;
     // Disable to Logcat logging by default.
-    private static boolean sAllowLogcat = false;
+    private static boolean sAllowLogcat = true;
 
     /**
      * Enum class for LogLevel that the sdk recognizes.

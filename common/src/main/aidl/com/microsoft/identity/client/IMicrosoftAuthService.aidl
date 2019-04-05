@@ -31,11 +31,13 @@ interface IMicrosoftAuthService {
 
     Bundle connect(in Bundle bundle);
 
-    Bundle getAccounts();
+    Bundle getAccounts(in Bundle bundle);
 
     Bundle acquireTokenSilently(in Bundle requestBundle);
 
     Intent getIntentForInteractiveRequest();
 
-    void removeAccounts();
+    void removeAccountFromDevice(in Bundle bundle);
+
+    void removeAccount(in Bundle bundle);
 }

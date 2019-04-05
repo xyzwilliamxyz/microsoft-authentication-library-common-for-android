@@ -126,7 +126,7 @@ public class BrokerValidator {
             }
         }
 
-        throw new ClientException(ErrorStrings.BROKER_APP_VERIFICATION_FAILED);
+//        throw new ClientException(ErrorStrings.BROKER_APP_VERIFICATION_FAILED);
     }
 
     @SuppressLint("PackageManagerGetSignatures")
