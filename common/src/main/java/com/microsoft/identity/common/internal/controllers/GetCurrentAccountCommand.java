@@ -70,6 +70,11 @@ public class GetCurrentAccountCommand extends BaseCommand<List<ICacheRecord>> {
     }
 
     @Override
+    public boolean isEligibleForEstsTelemetry() {
+        return false;
+    }
+
+    @Override
     public int getCommandNameHashCode() {
         return TAG.hashCode();
     }

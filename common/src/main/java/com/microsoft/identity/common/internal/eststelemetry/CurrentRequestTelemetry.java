@@ -1,22 +1,10 @@
 package com.microsoft.identity.common.internal.eststelemetry;
 
-import com.google.gson.annotations.SerializedName;
-
 public class CurrentRequestTelemetry extends RequestTelemetry {
 
     private String mApiId;
 
     private String mForceRefresh;
-
-    private boolean mReturningFromCache; // this is not actually part of schema. needed to track other things.
-
-    public boolean getReturningFromCache() {
-        return mReturningFromCache;
-    }
-
-    public void setReturningFromCache(boolean returningFromCache) {
-        this.mReturningFromCache = returningFromCache;
-    }
 
     String getApiId() {
         return mApiId;

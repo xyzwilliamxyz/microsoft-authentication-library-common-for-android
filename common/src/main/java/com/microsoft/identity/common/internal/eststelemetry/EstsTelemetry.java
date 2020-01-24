@@ -55,7 +55,7 @@ public class EstsTelemetry {
 
     private static volatile EstsTelemetry sEstsTelemetryInstance = null;
     private IRequestTelemetryCache mLastRequestTelemetryCache;
-    private Map<String, CurrentRequestTelemetry> mTelemetryMap;
+    private Map<String, EstsTelemetryInternal> mTelemetryMap;
 
     private Queue<Map<String, String>> history;
 
@@ -122,7 +122,7 @@ public class EstsTelemetry {
     }
 
     private void emit(final String correlationId, final String key, final String value) {
-        // ests telemetry will be disabled if cache is not initialized
+        // Ests telemetry will be disabled if cache is not initialized
         // this should never happen in the case of MSAL
         if (isDisabled()) {
             return;
@@ -134,19 +134,46 @@ public class EstsTelemetry {
         }
     }
 
-    private CurrentRequestTelemetry getCurrentTelemetryInstance(@Nullable final String correlationId) {
+    public void createEntry(@Nullable final String correlationId, final String commandType) {
+        if (mTelemetryMap == null || correlationId == null || correlationId.equals("UNSET")) {
+            return;
+        }
+
+        if (mTelemetryMap.containsKey(correlationId)) {
+            // if it is already there don't override it
+            // createEntry is only expected to be called once per command
+            // calling it twice will be a bad calling pattern
+            return;
+        }
+
+        // create internal object
+        // which will create a context and a current request telemetry object
+        EstsTelemetryContext estsTelemetryContext = new EstsTelemetryContext(correlationId, commandType);
+        CurrentRequestTelemetry currentRequestTelemetry = new CurrentRequestTelemetry();
+        EstsTelemetryInternal estsTelemetryInternal = new EstsTelemetryInternal(estsTelemetryContext, currentRequestTelemetry);
+        mTelemetryMap.put(correlationId, estsTelemetryInternal);
+    }
+
+    @Nullable
+    public EstsTelemetryInternal getCurrentEstsTelemetryInternal(@Nullable final String correlationId) {
         if (mTelemetryMap == null || correlationId == null || correlationId.equals("UNSET")) {
             return null;
         }
 
-        CurrentRequestTelemetry currentTelemetry = mTelemetryMap.get(correlationId);
-        if (currentTelemetry != null) {
-            return currentTelemetry;
-        } else {
-            CurrentRequestTelemetry telemetry = new CurrentRequestTelemetry();
-            mTelemetryMap.put(correlationId, telemetry);
-            return telemetry;
-        }
+        return mTelemetryMap.get(correlationId);
+    }
+
+    // get will now just return the instance for the correlation id or null if not present
+    // won't create a new one if one wasn't already there
+    @Nullable
+    private CurrentRequestTelemetry getCurrentTelemetryInstance(@Nullable final String correlationId) {
+        final EstsTelemetryInternal estsTelemetryInternal = getCurrentEstsTelemetryInternal(correlationId);
+        return estsTelemetryInternal != null ? estsTelemetryInternal.getCurrentRequestTelemetry() : null;
+    }
+
+    public EstsTelemetryContext getCurrentTelemetryContext(@Nullable final String correlationId) {
+        final EstsTelemetryInternal estsTelemetryInternal = getCurrentEstsTelemetryInternal(correlationId);
+        return estsTelemetryInternal != null ? estsTelemetryInternal.getEstsTelemetryContext() : null;
     }
 
     @Nullable
@@ -258,10 +285,13 @@ public class EstsTelemetry {
             return;
         }
 
-        CurrentRequestTelemetry currentTelemetry = mTelemetryMap.get(correlationId);
-        if (currentTelemetry == null) {
+        EstsTelemetryInternal estsTelemetryInternal = mTelemetryMap.get(correlationId);
+
+        if (estsTelemetryInternal == null) {
             return;
         }
+
+        CurrentRequestTelemetry currentTelemetry = estsTelemetryInternal.getCurrentRequestTelemetry();
 
         LastRequestTelemetry lastRequestTelemetry = loadLastRequestTelemetryFromCache();
 
@@ -271,7 +301,7 @@ public class EstsTelemetry {
 
         setupLastFromCurrent(currentTelemetry, lastRequestTelemetry);
 
-        boolean returnedTokenFromCache = currentTelemetry.getReturningFromCache();
+        boolean returnedTokenFromCache = estsTelemetryInternal.getEstsTelemetryContext().isResultServicedFromCache();
 
         if (errorCode != null) {
             lastRequestTelemetry.appendFailedRequestWithError(
@@ -281,6 +311,7 @@ public class EstsTelemetry {
         } else {
             lastRequestTelemetry.wipeFailedRequestData();
 
+            // must be token request for now so this should be removed
             if (isCurrentRequestTokenRequest()) {
                 if (returnedTokenFromCache) {
                     lastRequestTelemetry.incrementSilentSuccessCount();
@@ -308,6 +339,8 @@ public class EstsTelemetry {
         }
     }
 
+
+// this should NOT be needed anymore
     // if we don't have api id then we won't save telemetry to cache
     // this can happen for commands like the GetDeviceModeCommand
     // that are generated via a method for which we don't want telemetry
@@ -321,7 +354,7 @@ public class EstsTelemetry {
             return null;
         }
 
-        RequestTelemetry currentTelemetry = mTelemetryMap.get(correlationId);
+        RequestTelemetry currentTelemetry = getCurrentTelemetryInstance(correlationId);
 
         if (currentTelemetry == null) {
             return null;
@@ -387,6 +420,7 @@ public class EstsTelemetry {
         return getCurrentTelemetryInstance(correlationId);
     }
 
+    // probably not needed anymore
     private boolean isCurrentRequestTokenRequest() {
         final String commandType = DiagnosticContext.getRequestContext().get(DiagnosticContext.COMMAND_TYPE);
         return commandType.equals(TokenCommand.class.getSimpleName()) || commandType.equals(InteractiveTokenCommand.class.getSimpleName());
@@ -397,6 +431,8 @@ public class EstsTelemetry {
         Logger.error("ESTS Telemetry", msg, null);
     }
 
+
+    // need a real hook for test purposes
     private String craftHistory() {
         StringBuilder sb = new StringBuilder(100);
 

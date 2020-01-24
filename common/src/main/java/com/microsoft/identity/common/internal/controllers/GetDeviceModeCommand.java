@@ -45,6 +45,11 @@ public class GetDeviceModeCommand extends BaseCommand<Boolean> {
     }
 
     @Override
+    public boolean isEligibleForEstsTelemetry() {
+        return false;
+    }
+
+    @Override
     public int getCommandNameHashCode() {
         return TAG.hashCode();
     }

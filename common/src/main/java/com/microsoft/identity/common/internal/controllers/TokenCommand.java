@@ -103,6 +103,11 @@ public class TokenCommand extends BaseCommand<AcquireTokenResult> implements Tok
     }
 
     @Override
+    public boolean isEligibleForEstsTelemetry() {
+        return true;
+    }
+
+    @Override
     public boolean isEligibleForCaching(){
         return false;
     }

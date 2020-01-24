@@ -81,7 +81,17 @@ public class CommandDispatcher {
         sSilentExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                final String correlationId = initializeDiagnosticContext(command.getParameters().getCorrelationId(), command);
+                final String correlationId = initializeDiagnosticContext(command.getParameters().getCorrelationId());
+
+                // create an entry for this command in the Telemetry map
+                // (only if command is eligible for telemetry)
+                if (command.isEligibleForEstsTelemetry()) {
+                    EstsTelemetry.getInstance().createEntry(
+                            command.getParameters().getCorrelationId(),
+                            command.getClass().getSimpleName()
+                    );
+                }
+
                 EstsTelemetry.getInstance().emitApiId(command.getPublicApiId());
 
                 CommandResult commandResult = null;
@@ -273,9 +283,19 @@ public class CommandDispatcher {
                 @Override
                 public void run() {
                     final String correlationId = initializeDiagnosticContext(
-                            command.getParameters().getCorrelationId(),
-                            command
+                            command.getParameters().getCorrelationId()
                     );
+
+                    // create an entry for this command in the Telemetry map
+                    // (only if command is eligible for telemetry)
+                    if (command.isEligibleForEstsTelemetry()) {
+                        EstsTelemetry.getInstance().createEntry(
+                                command.getParameters().getCorrelationId(),
+                                command.getClass().getSimpleName()
+                        );
+                    }
+
+                    // if there no entry nothing will be emitted
                     EstsTelemetry.getInstance().emitApiId(command.getPublicApiId());
 
                     if (command.getParameters() instanceof AcquireTokenOperationParameters) {
@@ -495,21 +515,17 @@ public class CommandDispatcher {
         }
     }
 
-    public static String initializeDiagnosticContext(@Nullable final String requestCorrelationId,
-                                                     @Nullable final BaseCommand command) {
+    public static String initializeDiagnosticContext(@Nullable final String requestCorrelationId) {
         final String methodName = ":initializeDiagnosticContext";
 
         final String correlationId = TextUtils.isEmpty(requestCorrelationId) ?
                 UUID.randomUUID().toString() :
                 requestCorrelationId;
 
-        final String commandType = command.getClass().getSimpleName();
 
         final com.microsoft.identity.common.internal.logging.RequestContext rc =
                 new com.microsoft.identity.common.internal.logging.RequestContext();
         rc.put(DiagnosticContext.CORRELATION_ID, correlationId);
-
-        rc.put(DiagnosticContext.COMMAND_TYPE, commandType);
 
         DiagnosticContext.setRequestContext(rc);
         Logger.verbose(
