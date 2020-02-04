@@ -237,7 +237,7 @@ afterEvaluate {
                 }
 
                 artifact(sourcesJar)
-                artifact(releaseJavadocJar)
+//                artifact(releaseJavadocJar)
                 artifact("$buildDir/outputs/aar/common-${project.version}.aar")
 
             }
